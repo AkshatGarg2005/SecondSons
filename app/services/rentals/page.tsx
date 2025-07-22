@@ -7,7 +7,7 @@ import Navbar from '@/components/Navbar';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Property } from '@/types';
-import { FiHome, FiMapPin, FiBed, FiBath, FiSquare, FiSearch, FiFilter } from 'react-icons/fi';
+import { FiHome, FiMapPin, FiBed, FiDroplet, FiSquare, FiSearch, FiFilter } from 'react-icons/fi';
 import { formatCurrency } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
@@ -217,7 +217,7 @@ export default function HomeRentalsPage() {
                       )}
                       {property.bathrooms && (
                         <div className="flex items-center">
-                          <FiBath className="mr-1" />
+                          <FiDroplet className="mr-1" />
                           <span>{property.bathrooms} Bath</span>
                         </div>
                       )}

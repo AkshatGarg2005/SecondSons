@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Property, RentalBooking, User } from '@/types';
-import { FiMapPin, FiBed, FiBath, FiSquare, FiPhone, FiMail, FiCheck, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiMapPin, FiBed, FiDroplet, FiSquare, FiPhone, FiMail, FiCheck, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
@@ -201,7 +201,7 @@ export default function PropertyDetailPage() {
                   )}
                   {property.bathrooms && (
                     <div className="flex items-center">
-                      <FiBath className="mr-2 text-gray-400" />
+                      <FiDroplet className="mr-2 text-gray-400" />
                       <span>{property.bathrooms} Bathrooms</span>
                     </div>
                   )}

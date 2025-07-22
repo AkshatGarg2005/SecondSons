@@ -1,11 +1,4 @@
-import { v2 as cloudinary } from 'cloudinary';
-
-cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
+// Remove the cloudinary import and use direct API calls only
 export const uploadToCloudinary = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append('file', file);
@@ -29,12 +22,6 @@ export const uploadToCloudinary = async (file: File): Promise<string> => {
 };
 
 export const deleteFromCloudinary = async (publicId: string): Promise<void> => {
-  try {
-    await cloudinary.uploader.destroy(publicId);
-  } catch (error) {
-    console.error('Error deleting from Cloudinary:', error);
-    throw new Error('Failed to delete image');
-  }
+  // This would need to be done through an API route since it requires the secret
+  console.log('Delete functionality needs to be implemented through API route');
 };
-
-export default cloudinary;

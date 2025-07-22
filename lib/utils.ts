@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { User } from '@/types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -39,4 +40,19 @@ export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2
       Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c; // Distance in km
+}
+
+export function getDashboardRoute(userData: User): string {
+  switch (userData.role) {
+    case 'admin':
+      return `/admin/${userData.adminType || 'super'}`;
+    case 'worker':
+      return `/worker/${userData.workerService || 'cab'}`;
+    case 'restaurant':
+      return '/restaurant/dashboard';
+    case 'homeowner':
+      return '/homeowner/properties';
+    default:
+      return '/customer/dashboard';
+  }
 }
