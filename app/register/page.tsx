@@ -8,8 +8,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
-import { FiMail, FiLock, FiEye, FiEyeOff, FiUser, FiPhone, FiCheck, FiChevronRight } from 'react-icons/fi';
+import { FiMail, FiLock, FiEye, FiEyeOff, FiUser, FiPhone, FiCheck, FiChevronRight, FiInfo } from 'react-icons/fi';
 import { UserRole, ServiceType } from '@/types';
+import toast from 'react-hot-toast';
 
 // Define role configurations
 const roleConfigs = {
@@ -46,6 +47,15 @@ const roleConfigs = {
   },
 };
 
+const homeServiceSpecialties = [
+  { category: 'Plumbing', services: ['Tap Repair', 'Pipe Fixing', 'Toilet Repair', 'Water Tank Cleaning'] },
+  { category: 'Electrical', services: ['Switch Repair', 'Wiring Work', 'Fan Installation', 'MCB & Fuse Work'] },
+  { category: 'AC Repair', services: ['AC Service', 'Gas Filling', 'AC Installation', 'AC Repair'] },
+  { category: 'Carpentry', services: ['Furniture Repair', 'Door Repair', 'Cabinet Work', 'Window Repair'] },
+  { category: 'Painting', services: ['Room Painting', 'Wall Texture', 'Wood Polish', 'Waterproofing'] },
+  { category: 'Appliance Repair', services: ['Washing Machine', 'Refrigerator', 'Microwave', 'Geyser'] },
+];
+
 const baseSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
@@ -68,9 +78,10 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [step, setStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState('role'); // 'role', 'workerType', 'specialties', 'form'
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [selectedWorkerType, setSelectedWorkerType] = useState<ServiceType>('cab');
+  const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
 
   const {
     register,
@@ -110,6 +121,11 @@ export default function RegisterPage() {
       return;
     }
 
+    if (selectedRole === 'worker' && selectedWorkerType === 'peoplerent' && selectedSpecialties.length === 0) {
+      toast.error('Please select at least one specialty');
+      return;
+    }
+
     setIsLoading(true);
     try {
       await registerUser(
@@ -120,6 +136,11 @@ export default function RegisterPage() {
         selectedRole,
         selectedRole === 'worker' ? selectedWorkerType : undefined
       );
+      
+      // If home service worker, save specialties to localStorage for later use
+      if (selectedRole === 'worker' && selectedWorkerType === 'peoplerent') {
+        localStorage.setItem('workerSpecialties', JSON.stringify(selectedSpecialties));
+      }
       
       // Wait a moment for the auth state to update
       setTimeout(() => {
@@ -135,23 +156,79 @@ export default function RegisterPage() {
   const handleRoleSelect = (role: UserRole) => {
     setSelectedRole(role);
     if (role === 'worker') {
-      setStep(2); // Show worker type selection
+      setCurrentStep('workerType');
     } else {
-      setStep(3); // Go to form
+      setCurrentStep('form');
     }
   };
 
   const handleWorkerTypeSelect = (type: ServiceType) => {
     setSelectedWorkerType(type);
-    setStep(3); // Go to form
+    if (type === 'peoplerent') {
+      setCurrentStep('specialties');
+    } else {
+      setCurrentStep('form');
+    }
+  };
+
+  const handleSpecialtyToggle = (specialty: string) => {
+    setSelectedSpecialties(prev => 
+      prev.includes(specialty) 
+        ? prev.filter(s => s !== specialty)
+        : [...prev, specialty]
+    );
   };
 
   const handleBack = () => {
-    if (step === 3 && selectedRole === 'worker') {
-      setStep(2);
-    } else if (step > 1) {
-      setStep(1);
-      setSelectedRole(null);
+    switch (currentStep) {
+      case 'form':
+        if (selectedRole === 'worker') {
+          if (selectedWorkerType === 'peoplerent') {
+            setCurrentStep('specialties');
+          } else {
+            setCurrentStep('workerType');
+          }
+        } else {
+          setCurrentStep('role');
+          setSelectedRole(null);
+        }
+        break;
+      case 'specialties':
+        setCurrentStep('workerType');
+        setSelectedSpecialties([]);
+        break;
+      case 'workerType':
+        setCurrentStep('role');
+        setSelectedRole(null);
+        setSelectedWorkerType('cab');
+        break;
+      default:
+        break;
+    }
+  };
+
+  const getTotalSteps = () => {
+    if (selectedRole === 'worker') {
+      if (selectedWorkerType === 'peoplerent') {
+        return 4; // role -> workerType -> specialties -> form
+      }
+      return 3; // role -> workerType -> form
+    }
+    return 2; // role -> form
+  };
+
+  const getCurrentStepNumber = () => {
+    switch (currentStep) {
+      case 'role':
+        return 1;
+      case 'workerType':
+        return 2;
+      case 'specialties':
+        return 3;
+      case 'form':
+        return selectedRole === 'worker' ? (selectedWorkerType === 'peoplerent' ? 4 : 3) : 2;
+      default:
+        return 1;
     }
   };
 
@@ -165,12 +242,12 @@ export default function RegisterPage() {
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div 
               className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(step / 3) * 100}%` }}
+              style={{ width: `${(getCurrentStepNumber() / getTotalSteps()) * 100}%` }}
             />
           </div>
 
           {/* Step 1: Choose Role */}
-          {step === 1 && (
+          {currentStep === 'role' && (
             <div className="space-y-6">
               <div className="text-center">
                 <h2 className="text-3xl font-bold text-gray-900">Join SecondSons</h2>
@@ -214,7 +291,7 @@ export default function RegisterPage() {
           )}
 
           {/* Step 2: Choose Worker Type (if worker selected) */}
-          {step === 2 && selectedRole === 'worker' && (
+          {currentStep === 'workerType' && (
             <div className="space-y-6">
               <div className="text-center">
                 <h2 className="text-3xl font-bold text-gray-900">Select Your Service</h2>
@@ -246,8 +323,71 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* Step 3: Registration Form */}
-          {step === 3 && (
+          {/* Step 3: Choose Specialties (if home service worker) */}
+          {currentStep === 'specialties' && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h2 className="text-3xl font-bold text-gray-900">Select Your Specialties</h2>
+                <p className="mt-2 text-gray-600">Choose the services you can provide (select at least one)</p>
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start">
+                <FiInfo className="text-yellow-600 mr-3 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-yellow-800">
+                  <p className="font-medium mb-1">Available Service Categories:</p>
+                  <p>You can provide services in one or more categories. Select all the services you're skilled in.</p>
+                </div>
+              </div>
+
+              <div className="space-y-6 max-h-96 overflow-y-auto">
+                {homeServiceSpecialties.map((category) => (
+                  <div key={category.category} className="bg-white rounded-lg shadow-md p-4">
+                    <h3 className="font-semibold text-lg mb-3">{category.category}</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {category.services.map((service) => (
+                        <label
+                          key={service}
+                          className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedSpecialties.includes(`${category.category} - ${service}`)}
+                            onChange={() => handleSpecialtyToggle(`${category.category} - ${service}`)}
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                          />
+                          <span className="text-sm text-gray-700">{service}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-between items-center">
+                <button
+                  onClick={handleBack}
+                  className="text-gray-600 hover:text-gray-900"
+                >
+                  ← Back to service selection
+                </button>
+                <button
+                  onClick={() => {
+                    if (selectedSpecialties.length === 0) {
+                      toast.error('Please select at least one specialty');
+                    } else {
+                      setCurrentStep('form');
+                    }
+                  }}
+                  className="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700"
+                >
+                  Continue →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Final Step: Registration Form */}
+          {currentStep === 'form' && (
             <div className="space-y-6">
               <div className="text-center">
                 <h2 className="text-3xl font-bold text-gray-900">Create Your Account</h2>
@@ -257,6 +397,11 @@ export default function RegisterPage() {
                     : `Registering as ${roleConfigs[selectedRole!]?.title}`
                   }
                 </p>
+                {selectedRole === 'worker' && selectedWorkerType === 'peoplerent' && selectedSpecialties.length > 0 && (
+                  <p className="text-sm text-indigo-600 mt-1">
+                    {selectedSpecialties.length} specialties selected
+                  </p>
+                )}
               </div>
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 bg-white p-6 rounded-lg shadow-md">
@@ -434,6 +579,9 @@ export default function RegisterPage() {
                       <li>• Your account will be verified within 24 hours</li>
                       <li>• You'll receive training materials via email</li>
                       <li>• Start accepting jobs once approved</li>
+                      {selectedWorkerType === 'peoplerent' && (
+                        <li>• Your specialties will be displayed to customers</li>
+                      )}
                     </>
                   )}
                   {selectedRole === 'restaurant' && (

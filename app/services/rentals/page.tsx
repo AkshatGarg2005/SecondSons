@@ -7,7 +7,8 @@ import Navbar from '@/components/Navbar';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Property } from '@/types';
-import { FiHome, FiMapPin, FiBed, FiDroplet, FiSquare, FiSearch, FiFilter } from 'react-icons/fi';
+import { FiHome, FiMapPin, FiDroplet, FiSquare, FiSearch, FiFilter } from 'react-icons/fi';
+import { IoBedOutline } from 'react-icons/io5';
 import { formatCurrency } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
@@ -211,7 +212,7 @@ export default function HomeRentalsPage() {
                     <div className="flex items-center justify-between text-sm text-gray-600 mb-3">
                       {property.bedrooms && (
                         <div className="flex items-center">
-                          <FiBed className="mr-1" />
+                          <IoBedOutline className="mr-1" />
                           <span>{property.bedrooms} Bed</span>
                         </div>
                       )}

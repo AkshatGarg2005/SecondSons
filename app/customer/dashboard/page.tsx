@@ -5,7 +5,7 @@ import Link from 'next/link';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/contexts/AuthContext';
-import { FiTruck, FiShoppingCart, FiHome, FiUsers, FiPackage, FiMapPin, FiClock, FiDollarSign } from 'react-icons/fi';
+import { FiTruck, FiShoppingCart, FiHome, FiUsers, FiPackage, FiMapPin, FiClock, FiDollarSign, FiList } from 'react-icons/fi';
 
 const services = [
   {
@@ -69,12 +69,32 @@ export default function CustomerDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Welcome Section */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Welcome back, {userData?.name}!
-            </h1>
-            <p className="text-gray-600">
-              What would you like to do today?
-            </p>
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                  Welcome back, {userData?.name}!
+                </h1>
+                <p className="text-gray-600">
+                  What would you like to do today?
+                </p>
+              </div>
+              <div className="flex space-x-4">
+                <Link
+                  href="/customer/cart"
+                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 flex items-center"
+                >
+                  <FiShoppingCart className="mr-2" />
+                  My Cart
+                </Link>
+                <Link
+                  href="/customer/orders"
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center"
+                >
+                  <FiList className="mr-2" />
+                  My Orders
+                </Link>
+              </div>
+            </div>
           </div>
 
           {/* Quick Stats */}
@@ -161,7 +181,12 @@ export default function CustomerDashboard() {
 
           {/* Recent Activity */}
           <div className="mt-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Activity</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
+              <Link href="/customer/orders" className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">
+                View all →
+              </Link>
+            </div>
             <div className="bg-white rounded-lg shadow-md p-6">
               <p className="text-gray-500 text-center py-8">
                 No recent activity. Start using our services to see your history here.
