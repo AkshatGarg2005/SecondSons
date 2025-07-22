@@ -11,14 +11,14 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
-import { User, UserRole } from '@/types';
+import { User, UserRole, ServiceType } from '@/types';
 import toast from 'react-hot-toast';
 
 interface AuthContextType {
   currentUser: FirebaseUser | null;
   userData: User | null;
   loading: boolean;
-  register: (email: string, password: string, name: string, phone: string, role: UserRole) => Promise<void>;
+  register: (email: string, password: string, name: string, phone: string, role: UserRole, workerService?: ServiceType) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -69,7 +69,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return unsubscribe;
   }, []);
 
-  const register = async (email: string, password: string, name: string, phone: string, role: UserRole) => {
+  const register = async (
+    email: string, 
+    password: string, 
+    name: string, 
+    phone: string, 
+    role: UserRole, 
+    workerService?: ServiceType
+  ) => {
     try {
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
       
@@ -81,6 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         name,
         phone,
         role,
+        ...(role === 'worker' && workerService ? { workerService } : {}),
         createdAt: new Date(),
         updatedAt: new Date(),
         isActive: true,
@@ -97,7 +105,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       toast.success('Registration successful!');
     } catch (error: any) {
-      toast.error(error.message || 'Registration failed');
+      if (error.code === 'auth/email-already-in-use') {
+        toast.error('This email is already registered');
+      } else if (error.code === 'auth/weak-password') {
+        toast.error('Password is too weak');
+      } else {
+        toast.error(error.message || 'Registration failed');
+      }
       throw error;
     }
   };
@@ -109,12 +123,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Fetch user data immediately after login
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       if (userDoc.exists()) {
-        setUserData(userDoc.data() as User);
+        const userData = userDoc.data() as User;
+        
+        // Check if user is active
+        if (!userData.isActive) {
+          await signOut(auth);
+          toast.error('Your account has been deactivated. Please contact support.');
+          throw new Error('Account deactivated');
+        }
+        
+        setUserData(userData);
+        toast.success('Login successful!');
+      } else {
+        toast.error('User profile not found. Please contact support.');
+        await signOut(auth);
+        throw new Error('User profile not found');
       }
-      
-      toast.success('Login successful!');
     } catch (error: any) {
-      toast.error(error.message || 'Login failed');
+      if (error.code === 'auth/user-not-found') {
+        toast.error('No account found with this email');
+      } else if (error.code === 'auth/wrong-password') {
+        toast.error('Incorrect password');
+      } else if (error.code === 'auth/invalid-email') {
+        toast.error('Invalid email address');
+      } else if (error.message !== 'Account deactivated' && error.message !== 'User profile not found') {
+        toast.error(error.message || 'Login failed');
+      }
       throw error;
     }
   };
