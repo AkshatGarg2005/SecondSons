@@ -1,10 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Navbar from '@/components/Navbar';
 import { useAuth } from '@/contexts/AuthContext';
+import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+import { formatDate, formatTime } from '@/lib/utils';
 import { FiTruck, FiShoppingCart, FiHome, FiUsers, FiPackage, FiMapPin, FiClock, FiDollarSign, FiList } from 'react-icons/fi';
 
 const services = [
@@ -60,6 +63,66 @@ const services = [
 
 export default function CustomerDashboard() {
   const { userData } = useAuth();
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(true);
+
+  useEffect(() => {
+    if (userData) {
+      fetchRecentActivities();
+    }
+  }, [userData]);
+
+  const fetchRecentActivities = async () => {
+    if (!userData) return;
+  
+    try {
+      const activities: any[] = [];
+      
+      // Fetch recent cab bookings
+      const cabQuery = query(
+        collection(db, 'cabBookings'),
+        where('customerId', '==', userData.id),
+        orderBy('createdAt', 'desc'),
+        limit(3)
+      );
+      const cabSnapshot = await getDocs(cabQuery);
+      cabSnapshot.forEach((doc) => {
+        activities.push({
+          id: doc.id,
+          type: 'cab',
+          title: 'Cab Ride',
+          status: doc.data().status,
+          createdAt: doc.data().createdAt.toDate(),
+        });
+      });
+      
+      // Fetch recent food orders
+      const foodQuery = query(
+        collection(db, 'foodOrders'),
+        where('customerId', '==', userData.id),
+        orderBy('createdAt', 'desc'),
+        limit(3)
+      );
+      const foodSnapshot = await getDocs(foodQuery);
+      foodSnapshot.forEach((doc) => {
+        activities.push({
+          id: doc.id,
+          type: 'food',
+          title: 'Food Order',
+          status: doc.data().status,
+          createdAt: doc.data().createdAt.toDate(),
+        });
+      });
+      
+      // Sort by date and take latest 5
+      activities.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      setRecentActivities(activities.slice(0, 5));
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+    } finally {
+      setActivitiesLoading(false);
+    }
+  };
 
   return (
     <ProtectedRoute allowedRoles={['customer']}>
@@ -188,9 +251,46 @@ export default function CustomerDashboard() {
               </Link>
             </div>
             <div className="bg-white rounded-lg shadow-md p-6">
-              <p className="text-gray-500 text-center py-8">
-                No recent activity. Start using our services to see your history here.
-              </p>
+              {activitiesLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                </div>
+              ) : recentActivities.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">
+                  No recent activity. Start using our services to see your history here.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {recentActivities.map((activity) => (
+                    <div key={activity.id} className="flex items-center justify-between py-3 border-b last:border-0">
+                      <div className="flex items-center">
+                        <div className={`p-2 rounded-lg mr-3 ${
+                          activity.type === 'cab' ? 'bg-blue-100 text-blue-600' :
+                          activity.type === 'food' ? 'bg-red-100 text-red-600' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>
+                          {activity.type === 'cab' ? <FiMapPin className="h-5 w-5" /> : <FiTruck className="h-5 w-5" />}
+                        </div>
+                        <div>
+                          <p className="font-medium">{activity.title}</p>
+                          <p className="text-sm text-gray-500">
+                            {formatDate(activity.createdAt)} at {formatTime(activity.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        activity.status === 'completed' || activity.status === 'delivered' 
+                          ? 'bg-green-100 text-green-800' 
+                          : activity.status === 'cancelled' 
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {activity.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
